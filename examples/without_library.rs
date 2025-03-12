@@ -1,3 +1,4 @@
+use winrt_notification::init_tracing;
 // How to create a toast without using this library
 
 extern crate xml;
@@ -20,6 +21,7 @@ pub use windows::runtime::{
 };
 
 fn main() {
+    init_tracing();
     do_toast().expect("not sure if this is actually failable");
     // this is a hack to workaround toasts not showing up if the application closes too quickly
     // you can put this in do_toast if you want.

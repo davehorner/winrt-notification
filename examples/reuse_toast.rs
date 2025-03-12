@@ -1,7 +1,13 @@
+use winrt_notification::init_tracing;
 extern crate winrt_notification;
-use winrt_notification::{Duration, Sound, Toast};
+use winrt_notification::{
+    Duration,
+    Sound,
+    Toast,
+};
 
 fn main() {
+    init_tracing();
     let duration = Duration::Short;
     let sound = Some(Sound::SMS);
 

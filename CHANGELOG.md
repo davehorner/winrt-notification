@@ -1,5 +1,20 @@
 # Changelog
 
+
+## [0.5.2](https://github.com/allenbenz/winrt-notification/compare/v0.5.1...v0.5.2) - 2025-03-12
+
+### Added
+
+- feat: add tracing support and update dependencies in Cargo.toml
+
+- Added tracing-subscriber and tracing dependencies for enhanced logging
+- Integrated tracing initialization in multiple example files (image.rs,
+  reuse_arguments.rs, reuse_toast.rs, simple.rs, without_library.rs)
+- Revised related documentation in lib.rs for clarity on tracing usage
+- HORNERs Quality checks (fmt,fix,audit) [davehorner](https://github.com/davehorner) 
+
+
+
 ## 0.5.1
  - Re-export windows::runtime::Result
  - Add support for scenarios

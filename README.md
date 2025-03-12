@@ -70,3 +70,8 @@ fn main() {
         .expect("unable to toast");
 }
 ```
+
+## Contributors
+
+Thanks to:
+* v0.5.2 - feat: [add tracing support](https://github.com/allenbenz/winrt-notification/pull/27), quality checks (fmt,fix,audit), and update dependencies in Cargo.toml. [davehorner](https://github.com/davehorner)

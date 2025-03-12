@@ -16,35 +16,45 @@
 //! * Windows 8.1 only supports a single image, the last image (icon, hero, image) will be the one on the toast
 
 /// for xml schema details check out:
-///
 /// * https://docs.microsoft.com/en-us/uwp/schemas/tiles/toastschema/root-elements
 /// * https://docs.microsoft.com/en-us/windows/uwp/controls-and-patterns/tiles-and-notifications-toast-xml-schema
 /// * https://docs.microsoft.com/en-us/windows/uwp/controls-and-patterns/tiles-and-notifications-adaptive-interactive-toasts
 /// * https://msdn.microsoft.com/library/14a07fce-d631-4bad-ab99-305b703713e6#Sending_toast_notifications_from_desktop_apps
-
-/// for Windows 7 and older support look into Shell_NotifyIcon
+///
+/// For Windows 7 and older support look into Shell_NotifyIcon
 /// https://msdn.microsoft.com/en-us/library/windows/desktop/ee330740(v=vs.85).aspx
 /// https://softwareengineering.stackexchange.com/questions/222339/using-the-system-tray-notification-area-app-in-windows-7
-
+///
 /// For actions look at https://docs.microsoft.com/en-us/dotnet/api/microsoft.toolkit.uwp.notifications.toastactionscustom?view=win-comm-toolkit-dotnet-7.0
 extern crate windows;
 extern crate xml;
-
 #[macro_use]
 extern crate strum;
 
+use std::path::Path;
 use windows::{
     Data::Xml::Dom::XmlDocument,
     UI::Notifications::ToastNotificationManager,
 };
-
-use std::path::Path;
-
 use xml::escape::escape_str_attribute;
 mod windows_check;
 
-pub use windows::runtime::{Error, HSTRING, Result};
+pub use windows::runtime::{
+    Error,
+    Result,
+    HSTRING,
+};
 pub use windows::UI::Notifications::ToastNotification;
+
+use tracing::{
+    error,
+    trace,
+};
+use tracing_subscriber::EnvFilter;
+
+pub fn init_tracing() {
+    tracing_subscriber::fmt().with_env_filter(EnvFilter::from_default_env()).init();
+}
 
 pub struct Toast {
     duration: String,
@@ -57,11 +67,10 @@ pub struct Toast {
     scenario: String,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Duration {
     /// 7 seconds
     Short,
-
     /// 25 seconds
     Long,
 }
@@ -108,20 +117,20 @@ pub enum LoopableSound {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum IconCrop {
     Square,
     Circular,
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Scenario {
     /// The normal toast behavior.
     Default,
     /// This will be displayed pre-expanded and stay on the user's screen till dismissed. Audio will loop by default and will use alarm audio.
     Alarm,
-    /// This will be displayed pre-expanded and stay on the user's screen till dismissed..
+    /// This will be displayed pre-expanded and stay on the user's screen till dismissed.
     Reminder,
     /// This will be displayed pre-expanded in a special call format and stay on the user's screen till dismissed. Audio will loop by default and will use ringtone audio.
     IncomingCall,
@@ -130,9 +139,9 @@ pub enum Scenario {
 impl Toast {
     /// This can be used if you do not have a AppUserModelID.
     ///
-    /// However, the toast will erroniously report its origin as powershell.
-    pub const POWERSHELL_APP_ID: &'static str = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\
-                                                 \\WindowsPowerShell\\v1.0\\powershell.exe";
+    /// However, the toast will erroneously report its origin as powershell.
+    pub const POWERSHELL_APP_ID: &'static str = "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}\\WindowsPowerShell\\v1.0\\powershell.exe";
+
     /// Constructor for the toast builder.
     ///
     /// app_id is the running application's [AppUserModelID][1].
@@ -157,27 +166,30 @@ impl Toast {
     /// Sets the title of the toast.
     ///
     /// Will be white.
-    /// Supports Unicode ✓
+    /// Supports Unicode Γ£ô
     pub fn title(mut self, content: &str) -> Toast {
         self.title = format!(r#"<text id="1">{}</text>"#, escape_str_attribute(content));
+        trace!("Set title: {}", content);
         self
     }
 
     /// Add/Sets the first line of text below title.
     ///
     /// Will be grey.
-    /// Supports Unicode ✓
+    /// Supports Unicode Γ£ô
     pub fn text1(mut self, content: &str) -> Toast {
         self.line1 = format!(r#"<text id="2">{}</text>"#, escape_str_attribute(content));
+        trace!("Set text1: {}", content);
         self
     }
 
     /// Add/Sets the second line of text below title.
     ///
     /// Will be grey.
-    /// Supports Unicode ✓
+    /// Supports Unicode Γ£ô
     pub fn text2(mut self, content: &str) -> Toast {
         self.line2 = format!(r#"<text id="3">{}</text>"#, escape_str_attribute(content));
+        trace!("Set text2: {}", content);
         self
     }
 
@@ -188,6 +200,7 @@ impl Toast {
             Duration::Short => "duration=\"short\"",
         }
         .to_owned();
+        trace!("Set duration: {:?}", duration);
         self
     }
 
@@ -203,9 +216,9 @@ impl Toast {
             Scenario::IncomingCall => "scenario=\"incomingCall\"",
         }
         .to_owned();
+        trace!("Set scenario: {:?}", scenario);
         self
     }
-
 
     /// Set the icon shown in the upper left of the toast
     ///
@@ -225,6 +238,7 @@ impl Toast {
                 escape_str_attribute(&source.display().to_string()),
                 escape_str_attribute(alt_text)
             );
+            trace!("Added icon with crop {:?} from {:?}", crop, source);
             self
         } else {
             // Win81 rejects the above xml so we fallback to a simpler call
@@ -243,6 +257,7 @@ impl Toast {
                 escape_str_attribute(&source.display().to_string()),
                 escape_str_attribute(alt_text)
             );
+            trace!("Added hero image from {:?}", source);
             self
         } else {
             // win81 rejects the above xml so we fallback to a simpler call
@@ -265,6 +280,7 @@ impl Toast {
             escape_str_attribute(&source.display().to_string()),
             escape_str_attribute(alt_text)
         );
+        trace!("Added image from {:?}", source);
         self
     }
 
@@ -279,19 +295,18 @@ impl Toast {
             Some(Sound::Single(sound)) => format!(r#"<audio src="ms-winsoundevent:Notification.Looping.{}" />"#, sound),
             Some(sound) => format!(r#"<audio src="ms-winsoundevent:Notification.{}" />"#, sound),
         };
-
+        trace!("Set sound: {:?}", src);
         self
     }
 
     fn create_template(&self) -> windows::runtime::Result<ToastNotification> {
-        //using this to get an instance of XmlDocument
+        trace!("Creating XML template for the toast");
         let toast_xml = XmlDocument::new()?;
 
         let template_binding = if windows_check::is_newer_than_windows81() {
             "ToastGeneric"
-        } else
-        //win8 or win81
-        {
+        } else {
+            // win8 or win81
             // Need to do this or an empty placeholder will be shown if no image is set
             if self.images == "" {
                 "ToastText04"
@@ -300,38 +315,43 @@ impl Toast {
             }
         };
 
-        toast_xml.LoadXml(HSTRING::from(format!(
+        let xml_str = format!(
             "<toast {} {}>
                     <visual>
                         <binding template=\"{}\">
-                        {}
-                        {}{}{}
+                        {}{}{}{}
                         </binding>
                     </visual>
                     {}
                 </toast>",
-            self.duration,
-            self.scenario,
-            template_binding,
-            self.images,
-            self.title,
-            self.line1,
-            self.line2,
-            self.audio,
-        )))?;
+            self.duration, self.scenario, template_binding, self.images, self.title, self.line1, self.line2, self.audio,
+        );
+        trace!("Toast XML: {}", xml_str);
+
+        toast_xml.LoadXml(HSTRING::from(xml_str))?;
 
         // Create the toast
-        ToastNotification::CreateToastNotification(toast_xml)
+        let toast = ToastNotification::CreateToastNotification(toast_xml)?;
+        trace!("Toast template created successfully");
+        Ok(toast)
     }
 
     /// Display the toast on the screen
     pub fn show(&self) -> windows::runtime::Result<()> {
-        let toast_template = self.create_template()?;
+        trace!("Attempting to create and show toast");
+        let toast_template = match self.create_template() {
+            Ok(template) => template,
+            Err(e) => {
+                error!("Failed to create toast template: {:?}", e);
+                return Err(e);
+            }
+        };
 
         let toast_notifier = ToastNotificationManager::CreateToastNotifierWithId(HSTRING::from(&self.app_id))?;
 
         // Show the toast.
         let result = toast_notifier.Show(&toast_template);
+        trace!("Toast shown, result: {:?}", result);
         std::thread::sleep(std::time::Duration::from_millis(10));
         result
     }
@@ -339,11 +359,14 @@ impl Toast {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use super::*;
     use std::path::Path;
 
     #[test]
     fn simple_toast() {
+        // Initialize tracing with env filter. Set RUST_LOG=trace to see all logs.
+        init_tracing();
+        trace!("Starting simple_toast test");
         let toast = Toast::new(Toast::POWERSHELL_APP_ID);
         toast
             .hero(&Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/test/flower.jpeg"), "flower")
@@ -360,7 +383,8 @@ mod tests {
             //.sound(Some(Sound::SMS))
             .sound(None)
             .show()
-            // silently consume errors
+            // Silently consume errors while logging them
             .expect("notification failed");
+        trace!("simple_toast test completed");
     }
 }
